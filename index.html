@@ -996,7 +996,58 @@
       }
     }
     .print-header, .print-signatures { display: none; }
-  </style>
+  
+    /* Guest / Personal Shared View */
+    .guest-header-actions {
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+    .guest-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+    .guest-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #16a34a;
+      box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+    }
+    .pulse-live {
+      animation: pulseGreen 2s infinite;
+    }
+    @keyframes pulseGreen {
+      0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+    body.guest-mode .admin-only,
+    body.guest-mode .exec-selector-bar,
+    body.guest-mode #btnDirectory,
+    body.guest-mode #btnNewActivity,
+    body.guest-mode #btnToolsModal,
+    body.guest-mode #btnShareExec,
+    body.guest-mode #cloudStatusBtn,
+    body.guest-mode .session-actions {
+      display: none !important;
+    }
+    body.guest-mode .guest-header-actions {
+      display: inline-flex !important;
+    }
+    body.guest-mode .status-select {
+      pointer-events: none;
+      opacity: 0.95;
+    }
+</style>
 </head>
 <body>
 
@@ -1062,6 +1113,19 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Exportar &amp; Nube
         </button>
+
+        <!-- Share Direct Link Trigger -->
+        <button class="btn btn-ghost btn-sm" id="btnShareExec" title="Compartir enlace privado de este directivo">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Compartir
+        </button>
+
+        <!-- Guest Actions Bar (Shown when in guest/shared mode) -->
+        <div id="guestHeaderActions" class="guest-header-actions">
+          <span class="guest-badge"><span class="guest-dot pulse-live"></span> En vivo &bull; Vista de Agenda</span>
+          <button class="btn btn-lime btn-sm" id="btnGuestICS">📅 Agregar a mi Outlook / Teams</button>
+        </div>
+
       </div>
     </div>
 
@@ -1455,6 +1519,48 @@
     </div>
   </dialog>
 
+  <!-- 5. Modal: Compartir Agenda -->
+  <dialog id="modalShare">
+    <div class="dialog-head">
+      <h3 id="modalShareTitle">🔗 Compartir Agenda en Tiempo Real</h3>
+      <button class="close-btn" onclick="document.getElementById('modalShare').close()">&times;</button>
+    </div>
+    <div class="dialog-body">
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+        Genera un enlace exclusivo para que el directivo consulte su agenda personalizada. 
+        <strong>Solo verá sus actividades</strong> y los cambios se actualizarán en su pantalla automáticamente en tiempo real.
+      </p>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <label style="font-weight:700; font-size:12.5px; color:var(--text-muted);">Enlace Exclusivo para <span id="shareExecName" style="color:var(--cun-pine); font-weight:800;"></span>:</label>
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          <input type="text" id="shareUrlInput" readonly style="flex:1; background:#f8faf9; font-size:12px; font-family:monospace; border:1px solid var(--border-color); border-radius:8px; padding:9px 12px; color:#1e293b;">
+          <button class="btn btn-lime btn-sm" id="btnCopyShareUrl">📋 Copiar Enlace</button>
+        </div>
+      </div>
+
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 14px; margin-bottom:16px; font-size:12.5px; color:#166534;">
+        <div style="font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+          <span class="guest-dot pulse-live"></span> Conexión en Tiempo Real Activa (Supabase)
+        </div>
+        <ul style="margin:0; padding-left:18px; line-height:1.55;">
+          <li><strong>Privacidad Garantizada:</strong> Solo verá su propia agenda (no verá a otros directivos).</li>
+          <li><strong>Modo Consulta Seguro:</strong> No podrá borrar ni alterar actividades.</li>
+          <li><strong>Sincronización en Vivo:</strong> Cualquier cambio o enlace que guardes en Supabase se reflejará de inmediato en su dispositivo sin recargar la página.</li>
+          <li><strong>Integración con Outlook / Teams:</strong> Podrá añadir todas sus reuniones en 1 clic.</li>
+        </ul>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <a id="sharePreviewLink" href="#" target="_blank" class="btn btn-outline btn-sm">👁️ Abrir Vista Previa de Invitado</a>
+        <button type="button" class="btn btn-outline btn-sm" id="btnShareDownloadICS">📅 Descargar archivo .ICS (Outlook)</button>
+      </div>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-outline" onclick="document.getElementById('modalShare').close()">Cerrar</button>
+    </div>
+  </dialog>
+
   <!-- Toast Element -->
   <div class="toast" id="toastMessage"></div>
 
@@ -1498,6 +1604,8 @@
     let activeView = 'timeline'; // 'timeline' | 'kanban' | 'weekly'
     let editingActivityId = null;
     let editingExecutiveId = null;
+    let isGuestMode = false;
+    let lockedExecutiveId = null;
 
     // Helper DOM
     const $ = id => document.getElementById(id);
@@ -1656,7 +1764,9 @@
 
         if (cloudExecs.length) {
           db.executives = cloudExecs;
-          if (!db.executives.find(x => x.id === db.activeExecutiveId)) {
+          if (lockedExecutiveId && db.executives.some(x => x.id === lockedExecutiveId)) {
+            db.activeExecutiveId = lockedExecutiveId;
+          } else if (!db.executives.find(x => x.id === db.activeExecutiveId)) {
             db.activeExecutiveId = db.executives[0].id;
           }
           saveLocal();
@@ -1665,6 +1775,69 @@
       } catch (err) {
         console.warn('Error reading from cloud:', err);
       }
+    }
+
+    
+    // Guest & URL Param Handling
+    function checkUrlParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const reqExec = urlParams.get('exec') || urlParams.get('id');
+      const reqView = urlParams.get('view');
+      const reqMode = urlParams.get('mode');
+
+      if (reqExec) {
+        const term = reqExec.toLowerCase();
+        const found = db.executives.find(e => 
+          e.id.toLowerCase() === term || 
+          e.id.toLowerCase().includes(term) || 
+          (e.email && e.email.toLowerCase().includes(term)) ||
+          e.name.toLowerCase().includes(term)
+        );
+        if (found) {
+          db.activeExecutiveId = found.id;
+          lockedExecutiveId = found.id;
+        }
+        if (reqView === 'guest' || reqView === 'only' || reqMode !== 'admin') {
+          isGuestMode = true;
+          document.body.classList.add('guest-mode');
+        }
+      }
+    }
+
+    // Realtime Synchronization via Supabase & Polling
+    function startRealtimeSync() {
+      if (!supabaseClient) return;
+      try {
+        supabaseClient
+          .channel('realtime_cun_agenda')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda_items' }, async () => {
+            console.log('Realtime change in agenda_items detected');
+            await syncFromCloud();
+            showToast('⚡ Agenda actualizada en tiempo real');
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'executives' }, async () => {
+            console.log('Realtime change in executives detected');
+            await syncFromCloud();
+            showToast('⚡ Directivos actualizados en tiempo real');
+          })
+          .subscribe((status) => {
+            console.log('Supabase Realtime status:', status);
+          });
+      } catch (e) {
+        console.warn('Realtime channel subscribe error:', e);
+      }
+
+      // Background fallback polling every 12 seconds
+      setInterval(async () => {
+        if (isCloudConnected) {
+          await syncFromCloud();
+        }
+      }, 12000);
+
+      // Instant refresh on window focus
+      window.addEventListener('focus', () => {
+        if (isCloudConnected) syncFromCloud();
+      });
     }
 
     // 5. Executive Helpers
@@ -2082,6 +2255,17 @@
       $('actDetail').value = item ? (item.detail || '') : '';
       $('actNote').value = item ? (item.note || '') : '';
 
+            if (isGuestMode) {
+        $('modalActivityTitle').textContent = 'Detalle de la Actividad (Solo Lectura)';
+        $('btnDeleteAct').classList.add('hidden');
+        const submitBtn = $('formActivity').querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.style.display = 'none';
+        $('formActivity').querySelectorAll('input, select, textarea').forEach(f => f.disabled = true);
+      } else {
+        const submitBtn = $('formActivity').querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.style.display = 'inline-flex';
+        $('formActivity').querySelectorAll('input, select, textarea').forEach(f => f.disabled = false);
+      }
       $('modalActivity').showModal();
     };
 
@@ -2527,6 +2711,39 @@ CREATE POLICY "Acceso publico eliminacion agenda" ON public.agenda_items FOR DEL
 
       // Supabase Tools
       $('btnCopySQL').addEventListener('click', copySQLScript);
+      
+      // Share Modal Handlers
+      if ($('btnShareExec')) {
+        $('btnShareExec').addEventListener('click', () => {
+          const exec = getActiveExecutive();
+          $('shareExecName').textContent = exec.name;
+          const baseUrl = window.location.href.split('?')[0];
+          const shareUrl = `${baseUrl}?exec=${encodeURIComponent(exec.id)}&view=guest`;
+          $('shareUrlInput').value = shareUrl;
+          $('sharePreviewLink').href = shareUrl;
+          $('modalShare').showModal();
+        });
+      }
+      if ($('btnCopyShareUrl')) {
+        $('btnCopyShareUrl').addEventListener('click', async () => {
+          const inp = $('shareUrlInput');
+          inp.select();
+          try {
+            await navigator.clipboard.writeText(inp.value);
+            showToast('¡Enlace de ' + getActiveExecutive().name + ' copiado al portapapeles!');
+          } catch (e) {
+            document.execCommand('copy');
+            showToast('¡Enlace copiado al portapapeles!');
+          }
+        });
+      }
+      if ($('btnShareDownloadICS')) {
+        $('btnShareDownloadICS').addEventListener('click', downloadICS);
+      }
+      if ($('btnGuestICS')) {
+        $('btnGuestICS').addEventListener('click', downloadICS);
+      }
+
       $('btnSyncCloud').addEventListener('click', async () => {
         showToast('Sincronizando con Supabase...');
         await checkCloudConnection();
@@ -2536,9 +2753,12 @@ CREATE POLICY "Acceso publico eliminacion agenda" ON public.agenda_items FOR DEL
 
     // 12. App Initialization
     loadState();
+    checkUrlParams();
     setupEvents();
     render();
-    checkCloudConnection();
+    checkCloudConnection().then(() => {
+      startRealtimeSync();
+    });
 
   })();
   </script>
